@@ -55,13 +55,9 @@ with st.sidebar:
       +
 
       sorted(
-
        df["LINEOFBUSINESS"]
-
        .dropna()
-
        .unique()
-
       )
 
     )
@@ -77,7 +73,7 @@ with st.sidebar:
     if lob!="All":
 
         df1=df1[
-          df1["LINEOFBUSINESS"]==lob
+         df1["LINEOFBUSINESS"]==lob
         ]
 
 
@@ -106,7 +102,7 @@ with st.sidebar:
     if county!="All":
 
         df2=df2[
-          df2["COUNTY"]==county
+         df2["COUNTY"]==county
         ]
 
 
@@ -234,14 +230,14 @@ examples=[
 
 
 selected=st.selectbox(
-    "Select example query",
-    examples
+   "Select example query",
+   examples
 )
 
 
 query=st.text_input(
-    "Ask a healthcare question",
-    value=selected
+   "Ask a healthcare question",
+   value=selected
 )
 
 
@@ -275,12 +271,12 @@ if st.button(
 
         result=(
 
-           run_structured_query(
-             query_json,
-             filtered
-           )
+          run_structured_query(
+            query_json,
+            filtered
+          )
 
-           .reset_index()
+          .reset_index()
 
         )
 
@@ -320,9 +316,9 @@ if st.button(
 
         insights=ask_insights(
 
-            result.head(20)
+          result.head(20)
 
-            .to_string()
+          .to_string()
 
         )
 
@@ -349,8 +345,8 @@ if st.button(
         with tab1:
 
             st.plotly_chart(
-                fig,
-                use_container_width=True
+               fig,
+               use_container_width=True
             )
 
 
@@ -361,7 +357,7 @@ if st.button(
         with tab2:
 
             st.info(
-                insights
+               insights
             )
 
 
@@ -375,32 +371,32 @@ if st.button(
 
             display_result=display_result.rename(
 
-              columns={
+             columns={
 
-                "MEDICAL_PAID":"Medical Cost",
+              "MEDICAL_PAID":"Medical Cost",
 
-                "RX_PAID":"Pharmacy Cost",
+              "RX_PAID":"Pharmacy Cost",
 
-                "PAID":"Total Cost",
+              "PAID":"Total Cost",
 
-                "ED_VISITS":"ED Visits",
+              "ED_VISITS":"ED Visits",
 
-                "IP_VISITS":"IP Visits",
+              "IP_VISITS":"IP Visits",
 
-                "MONTH":"Month"
+              "MONTH":"Month"
 
-              }
+             }
 
             )
 
 
             for col in [
 
-              "Medical Cost",
+             "Medical Cost",
 
-              "Pharmacy Cost",
+             "Pharmacy Cost",
 
-              "Total Cost"
+             "Total Cost"
 
             ]:
 
@@ -413,7 +409,6 @@ if st.button(
                       .apply(
 
                        lambda x:
-
                        f"${x:,.0f}"
 
                       )
@@ -423,9 +418,9 @@ if st.button(
 
             for col in [
 
-              "ED Visits",
+             "ED Visits",
 
-              "IP Visits"
+             "IP Visits"
 
             ]:
 
@@ -438,7 +433,6 @@ if st.button(
                       .apply(
 
                        lambda x:
-
                        f"{x:,.0f}"
 
                       )
@@ -448,39 +442,39 @@ if st.button(
 
             styled=(
 
-              display_result
+             display_result
 
-              .style
+             .style
 
-              .set_properties(
+             .set_properties(
 
-                subset=[
+               subset=[
 
-                 c for c in [
+                c for c in [
 
-                  "Medical Cost",
+                 "Medical Cost",
 
-                  "Pharmacy Cost",
+                 "Pharmacy Cost",
 
-                  "Total Cost",
+                 "Total Cost",
 
-                  "ED Visits",
+                 "ED Visits",
 
-                  "IP Visits"
+                 "IP Visits"
 
-                 ]
+                ]
 
-                 if c in display_result.columns
+                if c in display_result.columns
 
-                ],
+               ],
 
-                **{
+               **{
 
-                  "text-align":"right"
+                "text-align":"right"
 
-                }
+               }
 
-              )
+             )
 
             )
 
@@ -493,9 +487,10 @@ if st.button(
 
         # -------------------------
         # PDF DOWNLOAD
+        # (IN-MEMORY FIX)
         # -------------------------
 
-        pdf_path=export_pdf(
+        pdf_bytes=export_pdf(
             kpis,
             result,
             insights,
@@ -503,22 +498,17 @@ if st.button(
         )
 
 
-        with open(
-          pdf_path,
-          "rb"
-        ) as f:
+        st.download_button(
 
-            st.download_button(
+          "Download Executive PDF Report",
 
-              "Download Executive PDF Report",
+          data=pdf_bytes,
 
-              data=f,
+          file_name="healthlens_report.pdf",
 
-              file_name="healthlens_report.pdf",
+          mime="application/pdf"
 
-              mime="application/pdf"
-
-            )
+        )
 
 
     except Exception as e:
