@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 
 from core.data_loader import load_data
@@ -14,9 +15,24 @@ from visualization.chart_router import build_chart
 from reporting.pdf_export import export_pdf
 
 
-# -------------------------
-# PAGE
-# -------------------------
+# --------------------------------
+# DETECT STREAMLIT CLOUD
+# --------------------------------
+
+RUNNING_ON_CLOUD = (
+
+    os.getenv(
+        "STREAMLIT_SHARING_MODE"
+    )
+
+    is not None
+
+)
+
+
+# --------------------------------
+# PAGE CONFIG
+# --------------------------------
 
 st.set_page_config(
 
@@ -30,13 +46,21 @@ st.title(
     "🏥 HealthLens Executive Dashboard"
 )
 
+st.caption(
+    "AI-Powered Healthcare Analytics"
+)
+
+
+# --------------------------------
+# LOAD DATA
+# --------------------------------
 
 df = load_data()
 
 
-# -------------------------
-# CASCADING FILTERS
-# -------------------------
+# --------------------------------
+# SIDEBAR FILTERS
+# --------------------------------
 
 with st.sidebar:
 
@@ -44,10 +68,6 @@ with st.sidebar:
         "Filters"
     )
 
-
-    # ---------------------
-    # LOB
-    # ---------------------
 
     lob_options = (
 
@@ -67,7 +87,6 @@ with st.sidebar:
 
     )
 
-
     lob = st.selectbox(
 
         "Line of Business",
@@ -76,10 +95,6 @@ with st.sidebar:
 
     )
 
-
-    # ---------------------
-    # COUNTY depends on LOB
-    # ---------------------
 
     df1 = df.copy()
 
@@ -110,7 +125,6 @@ with st.sidebar:
 
     )
 
-
     county = st.selectbox(
 
         "County",
@@ -119,11 +133,6 @@ with st.sidebar:
 
     )
 
-
-    # ---------------------
-    # COST CATEGORY depends
-    # on LOB + County
-    # ---------------------
 
     df2 = df1.copy()
 
@@ -154,7 +163,6 @@ with st.sidebar:
 
     )
 
-
     cost_category = st.selectbox(
 
         "Cost Category",
@@ -163,11 +171,6 @@ with st.sidebar:
 
     )
 
-
-    # ---------------------
-    # AGE CATEGORY depends
-    # on above filters
-    # ---------------------
 
     df3 = df2.copy()
 
@@ -200,7 +203,6 @@ with st.sidebar:
 
     )
 
-
     age_category = st.selectbox(
 
         "Age Category",
@@ -209,11 +211,6 @@ with st.sidebar:
 
     )
 
-
-    # ---------------------
-    # GENDER depends
-    # on all above
-    # ---------------------
 
     df4 = df3.copy()
 
@@ -246,7 +243,6 @@ with st.sidebar:
 
     )
 
-
     gender = st.selectbox(
 
         "Gender",
@@ -256,9 +252,9 @@ with st.sidebar:
     )
 
 
-# -------------------------
+# --------------------------------
 # APPLY FILTERS
-# -------------------------
+# --------------------------------
 
 filtered = apply_filters(
 
@@ -277,9 +273,9 @@ filtered = apply_filters(
 )
 
 
-# -------------------------
+# --------------------------------
 # EXAMPLE QUERIES
-# -------------------------
+# --------------------------------
 
 examples = [
 
@@ -289,13 +285,21 @@ examples = [
 
     "Compare medical and pharmacy cost",
 
+    "Trend of medical and pharmacy cost over months",
+
     "Compare ED and IP utilization",
+
+    "Compare ED and IP utilization by gender",
 
     "Compare total cost by gender",
 
     "Compare total cost by county",
 
     "Compare cost by line of business",
+
+    "Show medical cost trend for females",
+
+    "Show pharmacy cost trend for males",
 
     "Compare avoided cost by county for males"
 
@@ -320,9 +324,9 @@ query = st.text_input(
 )
 
 
-# -------------------------
-# RUN
-# -------------------------
+# --------------------------------
+# RUN ANALYSIS
+# --------------------------------
 
 if st.button(
     "Generate Insights"
@@ -348,17 +352,17 @@ if st.button(
             query_json["metrics"]=["PAID"]
 
 
-        result=(
+        result = (
 
-          run_structured_query(
+            run_structured_query(
 
-            query_json,
+                query_json,
 
-            filtered
+                filtered
 
-          )
+            )
 
-          .reset_index()
+            .reset_index()
 
         )
 
@@ -370,34 +374,29 @@ if st.button(
 
         c1,c2,c3,c4,c5=st.columns(5)
 
-
         c1.metric(
-          "👥 Members",
-          f"{kpis['members']:,}"
+            "👥 Members",
+            f"{kpis['members']:,}"
         )
-
 
         c2.metric(
-          "💰 Total Cost",
-          f"${kpis['total_cost']:,.0f}"
+            "💰 Total Cost",
+            f"${kpis['total_cost']:,.0f}"
         )
-
 
         c3.metric(
-          "📊 Avg Cost",
-          f"${kpis['avg_cost']:,.0f}"
+            "📊 Avg Cost",
+            f"${kpis['avg_cost']:,.0f}"
         )
-
 
         c4.metric(
-          "🏥 ED Visits",
-          f"{kpis['ed_visits']:,}"
+            "🏥 ED Visits",
+            f"{kpis['ed_visits']:,}"
         )
 
-
         c5.metric(
-          "🛏️ IP Visits",
-          f"{kpis['ip_visits']:,}"
+            "🛏️ IP Visits",
+            f"{kpis['ip_visits']:,}"
         )
 
 
@@ -460,33 +459,49 @@ if st.button(
             )
 
 
-        pdf_path=export_pdf(
+        # --------------------------------
+        # PDF ONLY IF LOCAL
+        # Hidden on Streamlit Cloud
+        # --------------------------------
 
-            kpis,
+        if not RUNNING_ON_CLOUD:
 
-            result,
+            pdf_path=export_pdf(
 
-            insights,
+                kpis,
 
-            fig
+                result,
 
-        )
+                insights,
+
+                fig
+
+            )
 
 
-        with open(
-          pdf_path,
-          "rb"
-        ) as f:
+            with open(
+                pdf_path,
+                "rb"
+            ) as f:
 
-            st.download_button(
+                st.download_button(
 
-              "Download Executive PDF Report",
+                    "Download Executive PDF Report",
 
-              data=f,
+                    data=f,
 
-              file_name="healthlens_report.pdf",
+                    file_name="healthlens_report.pdf",
 
-              mime="application/pdf"
+                    mime="application/pdf"
+
+                )
+
+
+        else:
+
+            st.info(
+
+                "PDF export is disabled in cloud deployment."
 
             )
 
